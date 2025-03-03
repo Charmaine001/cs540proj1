@@ -3,97 +3,219 @@ import Image from "next/image";
 import Link from "next/link";
 
 
-
-import { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Bar } from "react-chartjs-2";
 import Chart from "chart.js/auto";
 
-export default function Home() {
-  const [processes, setProcesses] = useState([]);
-  const [chartData, setChartData] = useState(null);
+// Function to generate random processes
+const generateProcesses = (num) => {
+  return Array.from({ length: num }, (_, i) => ({
+    id: i + 1,
+    arrivalTime: Math.floor(Math.random() * 10),
+    burstTime: Math.floor(Math.random() * 10) + 1,
+    priority: Math.floor(Math.random() * 5) + 1, // Used in MLFQ
+  }));
+};
 
-  // Generate random processes
-  const generateProcesses = () => {
-    const num = 5; // Number of processes
-    const newProcesses = [];
-    for (let i = 0; i < num; i++) {
-      newProcesses.push({
-        id: i + 1,
-        arrivalTime: i * 2, // Simulating staggered arrivals
-        burstTime: Math.floor(Math.random() * 10) + 1, // Random burst time
-      });
+// FIFO Algorithm
+const fifoScheduling = (processes) => {
+  processes.sort((a, b) => a.arrivalTime - b.arrivalTime);
+  let time = 0,
+    result = [];
+  processes.forEach((p) => {
+    time = Math.max(time, p.arrivalTime) + p.burstTime;
+    result.push({ id: p.id, completionTime: time });
+  });
+  return result;
+};
+
+// SJF Algorithm
+const sjfScheduling = (processes) => {
+  let time = 0,
+    result = [];
+  let remaining = [...processes];
+
+  while (remaining.length > 0) {
+    remaining = remaining.filter((p) => p.arrivalTime <= time);
+    if (remaining.length === 0) break;
+    remaining.sort((a, b) => a.burstTime - b.burstTime);
+    let process = remaining.shift();
+    time += process.burstTime;
+    result.push({ id: process.id, completionTime: time });
+  }
+  return result;
+};
+
+// STCF Algorithm
+const stcfScheduling = (processes) => {
+  let time = 0,
+    remaining = [...processes],
+    result = [];
+
+  while (remaining.length > 0) {
+    remaining = remaining.filter((p) => p.arrivalTime <= time);
+    if (remaining.length === 0) {
+      time++;
+      continue;
     }
-    setProcesses(newProcesses);
+    remaining.sort((a, b) => a.burstTime - b.burstTime);
+    let process = remaining[0];
+    process.burstTime -= 1;
+    time++;
+
+    if (process.burstTime === 0) {
+      result.push({ id: process.id, completionTime: time });
+      remaining.shift();
+    }
+  }
+  return result;
+};
+
+// RR Algorithm
+const rrScheduling = (processes, quantum) => {
+  let time = 0,
+    queue = [...processes],
+    result = [];
+
+  while (queue.length > 0) {
+    let process = queue.shift();
+    if (process.burstTime > quantum) {
+      process.burstTime -= quantum;
+      time += quantum;
+      queue.push(process);
+    } else {
+      time += process.burstTime;
+      result.push({ id: process.id, completionTime: time });
+    }
+  }
+  return result;
+};
+
+// MLFQ Algorithm
+const mlfqScheduling = (processes) => {
+  let time = 0;
+  let queues = [[], [], []]; // Ensure all queues exist
+  let result = [];
+
+  // Ensure priority is within range 1-3
+  processes.forEach((p) => {
+    let priorityIndex = Math.min(Math.max(p.priority - 1, 0), 2);
+    queues[priorityIndex].push(p);
+  });
+
+  while (queues.flat().length > 0) {
+    for (let q of queues) {
+      if (q.length > 0) {
+        let process = q.shift();
+        time += process.burstTime;
+        result.push({ id: process.id, completionTime: time });
+        break;
+      }
+    }
+  }
+  return result;
+};
+
+
+// Main Component
+const SchedulerApp = () => {
+  const [numProcesses, setNumProcesses] = useState(5);
+  const [timeQuantum, setTimeQuantum] = useState(2);
+  const [processes, setProcesses] = useState(generateProcesses(numProcesses));
+  const [results, setResults] = useState({});
+
+  useEffect(() => {
+    setProcesses(generateProcesses(numProcesses));
+  }, [numProcesses]);
+
+  const runAlgorithm = (algo) => {
+    let data;
+    switch (algo) {
+      case "FIFO":
+        data = fifoScheduling([...processes]);
+        break;
+      case "SJF":
+        data = sjfScheduling([...processes]);
+        break;
+      case "STCF":
+        data = stcfScheduling([...processes]);
+        break;
+      case "RR":
+        data = rrScheduling([...processes], timeQuantum);
+        break;
+      case "MLFQ":
+        data = mlfqScheduling([...processes]);
+        break;
+      default:
+        return;
+    }
+    setResults((prev) => ({ ...prev, [algo]: data }));
   };
 
-  // Run FIFO scheduling
-  const runFIFO = () => {
-    if (processes.length === 0) return;
-
-    let time = 0;
-    let completionTimes = [];
-    let waitingTimes = [];
-    let turnaroundTimes = [];
-
-    processes.forEach((process) => {
-      if (time < process.arrivalTime) time = process.arrivalTime;
-      let completionTime = time + process.burstTime;
-      completionTimes.push(completionTime);
-
-      let turnaroundTime = completionTime - process.arrivalTime;
-      turnaroundTimes.push(turnaroundTime);
-
-      let waitingTime = turnaroundTime - process.burstTime;
-      waitingTimes.push(waitingTime);
-
-      time = completionTime;
-    });
-
-    setChartData({
-      labels: processes.map((p) => `P${p.id}`),
-      datasets: [
-        {
-          label: "Completion Time",
-          data: completionTimes,
-          backgroundColor: "rgba(54, 162, 235, 0.5)",
-        },
-        {
-          label: "Turnaround Time",
-          data: turnaroundTimes,
-          backgroundColor: "rgba(255, 206, 86, 0.5)",
-        },
-        {
-          label: "Waiting Time",
-          data: waitingTimes,
-          backgroundColor: "rgba(255, 99, 132, 0.5)",
-        },
-      ],
+  const runAllAlgorithms = () => {
+    setResults({
+      FIFO: fifoScheduling([...processes]),
+      SJF: sjfScheduling([...processes]),
+      STCF: stcfScheduling([...processes]),
+      RR: rrScheduling([...processes], timeQuantum),
+      MLFQ: mlfqScheduling([...processes]),
     });
   };
 
   return (
-    <div className="p-4">
-      <h1 className="text-2xl font-bold mb-4">CPU Scheduling Algorithms</h1>
-      
-      <h2 className="text-xl font-bold mt-4">FIFO Scheduling</h2>
-      <button
-        onClick={generateProcesses}
-        className="bg-blue-500 text-white px-4 py-2 mr-2 rounded"
-      >
-        Generate Processes
-      </button>
-      <button
-        onClick={runFIFO}
-        className="bg-green-500 text-white px-4 py-2 rounded"
-      >
-        Run FIFO
-      </button>
-      
-      {chartData && (
-        <div className="mt-4">
-          <Bar data={chartData} />
+    <div className="container mx-auto p-5">
+      <h1 className="text-xl font-bold">CPU Scheduling Simulator</h1>
+      <div className="flex gap-4">
+        <input
+          type="number"
+          value={numProcesses}
+          onChange={(e) => setNumProcesses(Number(e.target.value))}
+          className="border p-2"
+          placeholder="Number of processes"
+        />
+        <input
+          type="number"
+          value={timeQuantum}
+          onChange={(e) => setTimeQuantum(Number(e.target.value))}
+          className="border p-2"
+          placeholder="Time Quantum (for RR)"
+        />
+      </div>
+      <div className="flex gap-4 mt-3">
+        <button className="bg-blue-500 text-white p-2" onClick={runAllAlgorithms}>
+          Run All Algorithms
+        </button>
+        {["FIFO", "SJF", "STCF", "RR", "MLFQ"].map((algo) => (
+          <button
+            key={algo}
+            className="bg-green-500 text-white p-2"
+            onClick={() => runAlgorithm(algo)}
+          >
+            Run {algo}
+          </button>
+        ))}
+      </div>
+
+      {/* Display Results */}
+      {Object.entries(results).map(([algo, data]) => (
+        <div key={algo} className="mt-5">
+          <h2 className="text-lg font-bold">{algo} Results</h2>
+          <Bar
+            data={{
+              labels: data.map((p) => `P${p.id}`),
+              datasets: [
+                {
+                  label: "Completion Time",
+                  data: data.map((p) => p.completionTime),
+                  backgroundColor: "rgba(54, 162, 235, 0.6)",
+                },
+              ],
+            }}
+          />
         </div>
-      )}
+      ))}
     </div>
   );
-}
+};
+
+export default SchedulerApp;
