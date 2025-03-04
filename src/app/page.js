@@ -142,6 +142,16 @@ const mlfqScheduling = (processes) => {
   }
   return result;
 };
-// Main Component
+
+// Run all algorithms
+const runAllAlgorithms = (processes, timeQuantum) => {
+  return {
+    FIFO: fifoScheduling(processes),
+    SJF: sjfScheduling(processes),
+    STCF: stcfScheduling(processes),
+    RR: roundRobinScheduling(processes, timeQuantum),
+    MLFQ: mlfqScheduling(processes),
+  };
+};
 
 export default SchedulerApp;
