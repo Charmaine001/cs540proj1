@@ -64,6 +64,34 @@ const sjfScheduling = (processes) => {
   return result;
 };
 
+// Shortest Time-to-Completion First (STCF) Scheduling
+const stcfScheduling = (processes) => {
+  let time = 0;
+  let result = [];
+  let remainingProcesses = [...processes];
+
+  while (remainingProcesses.length > 0) {
+    let availableProcesses = remainingProcesses.filter((p) => p.arrivalTime <= time);
+
+    if (availableProcesses.length === 0) {
+      time = remainingProcesses[0].arrivalTime;
+      continue;
+    }
+
+    availableProcesses.sort((a, b) => a.burstTime - b.burstTime); // Pick shortest remaining time
+    let process = availableProcesses[0];
+
+    time += 1;
+    process.burstTime -= 1; // Reduce burst time
+
+    if (process.burstTime === 0) {
+      result.push({ id: process.id, completionTime: time });
+      remainingProcesses = remainingProcesses.filter((p) => p.id !== process.id);
+    }
+  }
+
+  return result;
+};
 
 // Main Component
 
