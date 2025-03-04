@@ -93,6 +93,32 @@ const stcfScheduling = (processes) => {
   return result;
 };
 
+// Round Robin (RR) Scheduling
+const roundRobinScheduling = (processes, timeQuantum) => {
+  let time = 0;
+  let result = [];
+  let queue = [...processes];
+
+  queue.sort((a, b) => a.arrivalTime - b.arrivalTime); // Sort by arrival time
+
+  while (queue.length > 0) {
+    let process = queue.shift();
+
+    if (time < process.arrivalTime) time = process.arrivalTime; // Wait if process not arrived
+
+    if (process.burstTime > timeQuantum) {
+      time += timeQuantum;
+      process.burstTime -= timeQuantum;
+      queue.push(process); // Reinsert into queue
+    } else {
+      time += process.burstTime;
+      result.push({ id: process.id, completionTime: time });
+    }
+  }
+
+  return result;
+};
+
 // Main Component
 
 export default SchedulerApp;
