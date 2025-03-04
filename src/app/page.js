@@ -143,15 +143,105 @@ const mlfqScheduling = (processes) => {
   return result;
 };
 
-// Run all algorithms
-const runAllAlgorithms = (processes, timeQuantum) => {
-  return {
-    FIFO: fifoScheduling(processes),
-    SJF: sjfScheduling(processes),
-    STCF: stcfScheduling(processes),
-    RR: roundRobinScheduling(processes, timeQuantum),
-    MLFQ: mlfqScheduling(processes),
+// Main Component
+const SchedulerApp = () => {
+  const [numProcesses, setNumProcesses] = useState(5);
+  const [timeQuantum, setTimeQuantum] = useState(2);
+  const [processes, setProcesses] = useState(generateProcesses(numProcesses));
+  const [results, setResults] = useState({});
+
+  useEffect(() => {
+    setProcesses(generateProcesses(numProcesses));
+  }, [numProcesses]);
+
+  const runAlgorithm = (algo) => {
+    let data;
+    switch (algo) {
+      case "FIFO":
+        data = fifoScheduling([...processes]);
+        break;
+      case "SJF":
+        data = sjfScheduling([...processes]);
+        break;
+      case "STCF":
+        data = stcfScheduling([...processes]);
+        break;
+      case "RR":
+        data = rrScheduling([...processes], timeQuantum);
+        break;
+      case "MLFQ":
+        data = mlfqScheduling([...processes]);
+        break;
+      default:
+        return;
+    }
+    setResults((prev) => ({ ...prev, [algo]: data }));
   };
+
+  const runAllAlgorithms = () => {
+    setResults({
+      FIFO: fifoScheduling([...processes]),
+      SJF: sjfScheduling([...processes]),
+      STCF: stcfScheduling([...processes]),
+      RR: rrScheduling([...processes], timeQuantum),
+      MLFQ: mlfqScheduling([...processes]),
+    });
+  };
+
+  return (
+    <div className="container mx-auto p-5">
+      <h1 className="text-xl font-bold">CPU Scheduling Simulator</h1>
+      <div className="flex gap-4">
+        <input
+          type="number"
+          value={numProcesses}
+          onChange={(e) => setNumProcesses(Number(e.target.value))}
+          className="border p-2"
+          placeholder="Number of processes"
+        />
+        <input
+          type="number"
+          value={timeQuantum}
+          onChange={(e) => setTimeQuantum(Number(e.target.value))}
+          className="border p-2"
+          placeholder="Time Quantum (for RR)"
+        />
+      </div>
+      <div className="flex gap-4 mt-3">
+        <button className="bg-blue-500 text-white p-2" onClick={runAllAlgorithms}>
+          Run All Algorithms
+        </button>
+        {["FIFO", "SJF", "STCF", "RR", "MLFQ"].map((algo) => (
+          <button
+            key={algo}
+            className="bg-green-500 text-white p-2"
+            onClick={() => runAlgorithm(algo)}
+          >
+            Run {algo}
+          </button>
+        ))}
+      </div>
+
+      {/* Display Results */}
+      {Object.entries(results).map(([algo, data]) => (
+        <div key={algo} className="mt-5">
+          <h2 className="text-lg font-bold">{algo} Results</h2>
+          <Bar
+            data={{
+              labels: data.map((p) => `P${p.id}`),
+              datasets: [
+                {
+                  label: "Completion Time",
+                  data: data.map((p) => p.completionTime),
+                  backgroundColor: "rgba(54, 162, 235, 0.6)",
+                },
+              ],
+            }}
+          />
+        </div>
+      ))}
+    </div>
+  );
 };
 
 export default SchedulerApp;
