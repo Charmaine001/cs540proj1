@@ -2,9 +2,10 @@
 import Image from "next/image";
 import Link from "next/link";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Bar } from "react-chartjs-2";
 import Chart from "chart.js/auto";
+
 
 // Function to generate random processes
 const generateProcesses = (num) => {
@@ -94,7 +95,7 @@ const stcfScheduling = (processes) => {
 };
 
 // Round Robin (RR) Scheduling
-const roundRobinScheduling = (processes, timeQuantum) => {
+const rrScheduling = (processes, timeQuantum) => {
   let time = 0;
   let result = [];
   let queue = [...processes];
@@ -119,29 +120,51 @@ const roundRobinScheduling = (processes, timeQuantum) => {
   return result;
 };
 
-// Multi-Level Feedback Queue (MLFQ) Scheduling
 const mlfqScheduling = (processes) => {
   let time = 0;
-  let queues = [[], [], []]; // Three priority levels
+  let queues = [[], [], []]; // Three priority levels (index 0 is highest)
   let result = [];
+  let timeQuanta = [2, 4, 8]; // Example time quanta for each priority level
 
+  // Step 1: Assign processes to initial queues based on priority
   processes.forEach((p) => {
-    let priorityIndex = Math.min(Math.max(p.priority - 1, 0), 2); // Ensure valid priority
-    queues[priorityIndex].push(p);
+    let priorityIndex = Math.min(Math.max(p.priority - 1, 0), 2); // Assign based on priority
+    queues[priorityIndex].push({ ...p, remainingTime: p.burstTime });
   });
 
+  // Step 2: Process the queues
   while (queues.flat().length > 0) {
-    for (let q of queues) {
-      if (q.length > 0) {
-        let process = q.shift();
-        time += process.burstTime;
-        result.push({ id: process.id, completionTime: time });
-        break;
+    let executed = false;
+
+    for (let i = 0; i < queues.length; i++) {
+      if (queues[i].length > 0) {
+        let process = queues[i].shift(); // Get the first process in the queue
+        let executionTime = Math.min(process.remainingTime, timeQuanta[i]); // Use time quantum or remaining time
+        time += executionTime;
+        process.remainingTime -= executionTime; // Decrease the remaining time
+
+        if (process.remainingTime > 0) {
+          // If the process isn't done, move it to the next lower priority queue
+          if (i < queues.length - 1) {
+            queues[i + 1].push(process); // Move to lower priority queue
+          } else {
+            queues[i].push(process); // Stay in the same queue if it's the lowest priority
+          }
+        } else {
+          result.push({ id: process.id, completionTime: time }); // Add completed process to result
+        }
+
+        executed = true;
+        break; // Ensure that we process the first available process in the current queue
       }
     }
+
+    if (!executed) time++; // If no process was executed, increment time
   }
+
   return result;
 };
+
 
 // Main Component
 const SchedulerApp = () => {
@@ -159,35 +182,81 @@ const SchedulerApp = () => {
     switch (algo) {
       case "FIFO":
         data = fifoScheduling([...processes]);
+        console.log("fifo Results:", data); 
         break;
       case "SJF":
         data = sjfScheduling([...processes]);
+        console.log("sjf Results:", data); 
         break;
       case "STCF":
         data = stcfScheduling([...processes]);
+        console.log("stcf Results:", data); 
         break;
       case "RR":
         data = rrScheduling([...processes], timeQuantum);
+        console.log("rr Results:", data); 
         break;
       case "MLFQ":
         data = mlfqScheduling([...processes]);
+        console.log("MLFQ Results:", data); 
         break;
       default:
         return;
     }
     setResults((prev) => ({ ...prev, [algo]: data }));
+    
   };
 
   const runAllAlgorithms = () => {
-    setResults({
-      FIFO: fifoScheduling([...processes]),
-      SJF: sjfScheduling([...processes]),
-      STCF: stcfScheduling([...processes]),
-      RR: rrScheduling([...processes], timeQuantum),
-      MLFQ: mlfqScheduling([...processes]),
-    });
-  };
+    const processes = generateProcesses(numProcesses);
+    console.log("Generated Processes:", processes); // Log processes
+  
+     // Run MLFQ
+    console.log("Running MLFQ...");
+    const mlfqResults = mlfqScheduling([...processes]);
+    console.log("MLFQ Results:", mlfqResults); // Log MLFQ results
+    setResults((prevResults) => ({
+      ...prevResults,
+      MLFQ: mlfqResults,
+    }));
+    // Run FIFO
+    console.log("Running FIFO...");
+    const fifoResults = fifoScheduling([...processes]);
+    console.log("FIFO Results:", fifoResults); // Log FIFO results
+    setResults((prevResults) => ({
+      ...prevResults,
+      FIFO: fifoResults,
+    }));
 
+    // Run SJF
+    console.log("Running SJF...");
+    const sjfResults = sjfScheduling([...processes]);
+    console.log("SJF Results:", sjfResults); // Log SJF results
+    setResults((prevResults) => ({
+      ...prevResults,
+      SJF: sjfResults,
+    }));
+
+    // Run STCF
+    console.log("Running STCF...");
+    const stcfResults = stcfScheduling([...processes]);
+    console.log("STCF Results:", stcfResults); // Log STCF results
+    setResults((prevResults) => ({
+      ...prevResults,
+      STCF: stcfResults,
+    }));
+
+    // Run RR
+    console.log("Running RR...");
+    const rrResults = rrScheduling([...processes]);
+    console.log("RR Results:", rrResults); // Log RR results
+    setResults((prevResults) => ({
+      ...prevResults,
+      RR: rrResults,
+    }));
+
+  };
+  
   return (
     <div className="container mx-auto p-5">
       <h1 className="text-xl font-bold">CPU Scheduling Simulator</h1>
@@ -211,7 +280,7 @@ const SchedulerApp = () => {
         <button className="bg-blue-500 text-white p-2" onClick={runAllAlgorithms}>
           Run All Algorithms
         </button>
-        {["FIFO", "SJF", "STCF", "RR", "MLFQ"].map((algo) => (
+        {["MLFQ", "FIFO", "SJF", "STCF", "RR"].map((algo) => (
           <button
             key={algo}
             className="bg-green-500 text-white p-2"
@@ -228,15 +297,25 @@ const SchedulerApp = () => {
           <h2 className="text-lg font-bold">{algo} Results</h2>
           <Bar
             data={{
-              labels: data.map((p) => `P${p.id}`),
+              labels: data.map((p) => `P${p.id}`), // Corrected variable name
               datasets: [
                 {
                   label: "Completion Time",
-                  data: data.map((p) => p.completionTime),
-                  backgroundColor: "rgba(54, 162, 235, 0.6)",
+                  data: data.map((p) => p.completionTime), // Corrected variable name
+                  backgroundColor: data.map((_, i) => `hsl(${(i * 72) % 360}, 70%, 60%)`), // Corrected variable name
                 },
               ],
             }}
+            /* options={{
+              maintainAspectRatio: false, // Allows height customization
+              responsive: true,
+              scales: {
+                y: {
+                  beginAtZero: true,
+                },
+              },
+            }}
+            height={300} // Reduce chart height */
           />
         </div>
       ))}
