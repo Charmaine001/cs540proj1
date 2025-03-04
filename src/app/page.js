@@ -119,6 +119,29 @@ const roundRobinScheduling = (processes, timeQuantum) => {
   return result;
 };
 
+// Multi-Level Feedback Queue (MLFQ) Scheduling
+const mlfqScheduling = (processes) => {
+  let time = 0;
+  let queues = [[], [], []]; // Three priority levels
+  let result = [];
+
+  processes.forEach((p) => {
+    let priorityIndex = Math.min(Math.max(p.priority - 1, 0), 2); // Ensure valid priority
+    queues[priorityIndex].push(p);
+  });
+
+  while (queues.flat().length > 0) {
+    for (let q of queues) {
+      if (q.length > 0) {
+        let process = q.shift();
+        time += process.burstTime;
+        result.push({ id: process.id, completionTime: time });
+        break;
+      }
+    }
+  }
+  return result;
+};
 // Main Component
 
 export default SchedulerApp;
