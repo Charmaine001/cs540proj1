@@ -256,7 +256,11 @@ const SchedulerApp = () => {
     }));
 
   };
-  
+  // Calculate the maximum completion time for normalization
+  const maxCompletionTime = Math.max(
+    ...Object.values(results).flatMap((data) => data.map((p) => p.completionTime))
+  );
+
   return (
     <div className="container mx-auto p-5">
       <h1 className="text-xl font-bold">CPU Scheduling Simulator</h1>
