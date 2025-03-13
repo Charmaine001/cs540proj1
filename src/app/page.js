@@ -306,6 +306,22 @@ const SchedulerApp = () => {
         {Object.entries(results).map(([algo, data]) => (
           <div key={algo} className="border p-4">
             <h2 className="text-lg font-bold">{algo} Results</h2>
+            <div className="space-y-2">
+              {data.map((p) => (
+                <div key={p.id}>
+                  <p>Process P{p.id}</p>
+                  <div className="bg-gray-200 rounded">
+                    <div
+                      className="h-5 bg-green-400 transition-all duration-1000 ease-in-out"
+                      style={{
+                        width: `${(p.completionTime / maxCompletionTime) * 100}%`,
+                      }}
+                    />
+                  </div>
+                  <p>Completion Time: {p.completionTime}</p>
+                </div>
+              ))}
+            </div>
             <Bar
               data={{
                 labels: data.map((p) => `P${p.id}`),
