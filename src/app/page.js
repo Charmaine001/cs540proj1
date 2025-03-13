@@ -248,7 +248,7 @@ const SchedulerApp = () => {
 
     // Run RR
     console.log("Running RR...");
-    const rrResults = rrScheduling([...processes]);
+    const rrResults = rrScheduling([...processes], timeQuantum);
     console.log("RR Results:", rrResults); // Log RR results
     setResults((prevResults) => ({
       ...prevResults,
@@ -306,16 +306,6 @@ const SchedulerApp = () => {
                 },
               ],
             }}
-            /* options={{
-              maintainAspectRatio: false, // Allows height customization
-              responsive: true,
-              scales: {
-                y: {
-                  beginAtZero: true,
-                },
-              },
-            }}
-            height={300} // Reduce chart height */
           />
         </div>
       ))}
