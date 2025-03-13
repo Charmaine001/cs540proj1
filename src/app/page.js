@@ -261,20 +261,26 @@ const SchedulerApp = () => {
     <div className="container mx-auto p-5">
       <h1 className="text-xl font-bold">CPU Scheduling Simulator</h1>
       <div className="flex gap-4">
-        <input
-          type="number"
-          value={numProcesses}
-          onChange={(e) => setNumProcesses(Number(e.target.value))}
-          className="border p-2"
-          placeholder="Number of processes"
-        />
-        <input
-          type="number"
-          value={timeQuantum}
-          onChange={(e) => setTimeQuantum(Number(e.target.value))}
-          className="border p-2"
-          placeholder="Time Quantum (for RR)"
-        />
+        <div>
+          <label className="block text-sm font-medium mb-1">Number of Processes</label>
+          <input
+            type="number"
+            value={numProcesses}
+            onChange={(e) => setNumProcesses(Number(e.target.value))}
+            className="border p-2"
+            placeholder="Number of processes"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-1">Time Quantum (for RR)</label>
+          <input
+            type="number"
+            value={timeQuantum}
+            onChange={(e) => setTimeQuantum(Number(e.target.value))}
+            className="border p-2"
+            placeholder="Time Quantum"
+          />
+        </div>
       </div>
       <div className="flex gap-4 mt-3">
         <button className="bg-blue-500 text-white p-2" onClick={runAllAlgorithms}>
@@ -291,24 +297,42 @@ const SchedulerApp = () => {
         ))}
       </div>
 
-      {/* Display Results */}
-      {Object.entries(results).map(([algo, data]) => (
-        <div key={algo} className="mt-5">
-          <h2 className="text-lg font-bold">{algo} Results</h2>
-          <Bar
-            data={{
-              labels: data.map((p) => `P${p.id}`), // Corrected variable name
-              datasets: [
-                {
-                  label: "Completion Time",
-                  data: data.map((p) => p.completionTime), // Corrected variable name
-                  backgroundColor: data.map((_, i) => `hsl(${(i * 72) % 360}, 70%, 60%)`), // Corrected variable name
+      {/* Display Results Side by Side */}
+      <div className="grid grid-cols-2 gap-4 mt-5">
+        {Object.entries(results).map(([algo, data]) => (
+          <div key={algo} className="border p-4">
+            <h2 className="text-lg font-bold">{algo} Results</h2>
+            <Bar
+              data={{
+                labels: data.map((p) => `P${p.id}`),
+                datasets: [
+                  {
+                    label: "Completion Time",
+                    data: data.map((p) => p.completionTime),
+                    backgroundColor: data.map((_, i) => `hsl(${(i * 72) % 360}, 70%, 60%)`),
+                  },
+                ],
+              }}
+              options={{
+                scales: {
+                  y: {
+                    title: {
+                      display: true,
+                      text: "Completion Time",
+                    },
+                  },
+                  x: {
+                    title: {
+                      display: true,
+                      text: "Processes",
+                    },
+                  },
                 },
-              ],
-            }}
-          />
-        </div>
-      ))}
+              }}
+            />
+          </div>
+        ))}
+      </div>
     </div>
   );
 };
