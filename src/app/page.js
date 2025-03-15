@@ -256,7 +256,6 @@ const SchedulerApp = () => {
 
   };
   
-
   return (
     <div className="container mx-auto p-5">
       <h1 className="text-xl font-bold">CPU Scheduling Simulator</h1>
@@ -318,7 +317,7 @@ const SchedulerApp = () => {
                   y: {
                     title: {
                       display: true,
-                      text: "Completion Time",
+                      text: "Time",
                     },
                   },
                   x: {
