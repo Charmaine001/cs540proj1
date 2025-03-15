@@ -54,12 +54,11 @@ const sjfScheduling = (processes) => {
     }
 
     availableProcesses.sort((a, b) => a.burstTime - b.burstTime); // Pick shortest job
-
-    let process = availableProcesses.shift(); // Get the shortest job
+    let process = availableProcesses[0]; // Get the shortest job
     time += process.burstTime; // Execute process
     result.push({ id: process.id, completionTime: time });
 
-    readyQueue = readyQueue.filter((p) => p.id !== process.id);
+    readyQueue = readyQueue.filter((p) => p.id !== process.id); // Remove the executed process
   }
 
   return result;
@@ -256,10 +255,7 @@ const SchedulerApp = () => {
     }));
 
   };
-  // Calculate the maximum completion time for normalization
-  const maxCompletionTime = Math.max(
-    ...Object.values(results).flatMap((data) => data.map((p) => p.completionTime))
-  );
+  
 
   return (
     <div className="container mx-auto p-5">
@@ -306,8 +302,6 @@ const SchedulerApp = () => {
         {Object.entries(results).map(([algo, data]) => (
           <div key={algo} className="border p-4">
             <h2 className="text-lg font-bold">{algo} Results</h2>
-
-            {/* Bar Chart */}
             <Bar
               data={{
                 labels: data.map((p) => `P${p.id}`),
@@ -336,25 +330,6 @@ const SchedulerApp = () => {
                 },
               }}
             />
-
-            {/* Process Bars */}
-            <div className="space-y-2 mt-4">
-             <h3 className="text-md font-semibold">Process Completion Visualization</h3>
-              {data.map((p) => (
-                <div key={p.id}>
-                  <p>Process P{p.id}</p>
-                  <div className="bg-gray-200 rounded">
-                    <div
-                      className="h-5 bg-green-400 transition-all duration-1000 ease-in-out"
-                      style={{
-                        width: `${(p.completionTime / maxCompletionTime) * 100}%`,
-                      }}
-                    />
-                  </div>
-                  <p>Completion Time: {p.completionTime}</p>
-                </div>
-              ))}
-            </div>
           </div>
         ))}
       </div>
