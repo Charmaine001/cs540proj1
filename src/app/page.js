@@ -5,7 +5,8 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Bar } from "react-chartjs-2";
 import Chart from "chart.js/auto";
-
+import html2canvas from "html2canvas";
+import jsPDF from "jspdf";
 
 // Function to generate random processes
 const generateProcesses = (num) => {
@@ -164,7 +165,37 @@ const mlfqScheduling = (processes) => {
   return result;
 };
 
+const generateGradientColors = (data) => {
+  const gradients = [];
+  for (let i = 0; i < data.length; i++) {
+    const ctx = document.createElement("canvas").getContext("2d");
+    const gradient = ctx.createLinearGradient(0, 0, 0, 200); // Vertical gradient
+    gradient.addColorStop(0, `hsl(${(i * 72) % 360}, 80%, 70%)`); // Brighter start color
+    gradient.addColorStop(1, `hsl(${(i * 72) % 360}, 80%, 50%)`); // Brighter end color
+    gradients.push(gradient);
+  }
+  return gradients;
+};
+const saveAsPDF = () => {
+  // Get the results container element
+  const resultsContainer = document.getElementById("results-container");
 
+  // Use html2canvas to capture the content as an image
+  html2canvas(resultsContainer).then((canvas) => {
+    const imgData = canvas.toDataURL("image/png"); // Convert canvas to image data URL
+    const pdf = new jsPDF("p", "mm", "a4"); // Create a new PDF in portrait mode, A4 size
+
+    // Calculate dimensions for the image in the PDF
+    const imgWidth = 190; // Width of the image in the PDF (190mm for A4)
+    const imgHeight = (canvas.height * imgWidth) / canvas.width; // Maintain aspect ratio
+
+    // Add the image to the PDF
+    pdf.addImage(imgData, "PNG", 10, 10, imgWidth, imgHeight);
+
+    // Save the PDF file
+    pdf.save("scheduling_results.pdf");
+  });
+};
 // Main Component
 const SchedulerApp = () => {
   const [numProcesses, setNumProcesses] = useState(5);
@@ -294,43 +325,69 @@ const SchedulerApp = () => {
             Run {algo}
           </button>
         ))}
+        <button className="bg-purple-500 text-white p-2" onClick={saveAsPDF}>
+          Save as PDF
+        </button>
       </div>
 
-      {/* Display Results Side by Side */}
-      <div className="grid grid-cols-2 gap-4 mt-5">
-        {Object.entries(results).map(([algo, data]) => (
-          <div key={algo} className="border p-4">
-            <h2 className="text-lg font-bold">{algo} Results</h2>
-            <Bar
-              data={{
-                labels: data.map((p) => `P${p.id}`),
-                datasets: [
-                  {
-                    label: "Completion Time",
-                    data: data.map((p) => p.completionTime),
-                    backgroundColor: data.map((_, i) => `hsl(${(i * 72) % 360}, 70%, 60%)`),
+      {/* Results Container */}
+      <div id="results-container" className="grid grid-cols-2 gap-4 mt-5">
+        {Object.entries(results).map(([algo, data]) => {
+          const gradientColors = generateGradientColors(data);
+          return (
+            <div key={algo} className="border p-4">
+              <h2 className="text-lg font-bold">{algo} Results</h2>
+              <Bar
+                data={{
+                  labels: data.map((p) => `P${p.id}`),
+                  datasets: [
+                    {
+                      label: "Completion Time",
+                      data: data.map((p) => p.completionTime),
+                      backgroundColor: gradientColors,
+                      borderColor: "rgba(0, 0, 0, 0.1)",
+                      borderWidth: 1,
+                      hoverBackgroundColor: gradientColors,
+                      hoverBorderColor: "rgba(0, 0, 0, 0.3)",
+                    },
+                  ],
+                }}
+                options={{
+                  responsive: true,
+                  animation: {
+                    duration: 1000,
+                    easing: "easeInOutQuad",
                   },
-                ],
-              }}
-              options={{
-                scales: {
-                  y: {
-                    title: {
-                      display: true,
-                      text: "Time",
+                  scales: {
+                    y: {
+                      title: {
+                        display: true,
+                        text: "Time",
+                      },
+                      beginAtZero: true,
+                    },
+                    x: {
+                      title: {
+                        display: true,
+                        text: "Processes",
+                      },
                     },
                   },
-                  x: {
-                    title: {
-                      display: true,
-                      text: "Processes",
+                  plugins: {
+                    tooltip: {
+                      enabled: true,
+                      mode: "index",
+                      intersect: false,
+                    },
+                    legend: {
+                      display: false,
                     },
                   },
-                },
-              }}
-            />
-          </div>
-        ))}
+                }}
+              />
+            </div>
+          );
+        })}
       </div>
     </div>
   );
