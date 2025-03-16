@@ -1,8 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
     output: 'export',
-    basePath: "/cs540proj1", 
-    assetPrefix: "/cs540proj1/", 
+    images: {
+        unoptimized: true, // Disable image optimization for static export
+    },
     trailingSlash: true,
 };
 
